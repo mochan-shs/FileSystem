@@ -1,0 +1,14 @@
+﻿  main.c
+d:\computer\filesystem\project\project\main.c(99): warning C4013: “LocalTime”未定义；假设外部返回 int
+d:\computer\filesystem\project\project\main.c(110): warning C4020: “copytouser”: 实参太多
+d:\computer\filesystem\project\project\main.c(83): warning C4101: “i”: 未引用的局部变量
+d:\computer\filesystem\project\project\main.c(140): warning C4244: “=”: 从“time_t”转换到“unsigned int”，可能丢失数据
+d:\computer\filesystem\project\project\main.c(198): warning C4029: 声明的形参表不同于定义
+d:\computer\filesystem\project\project\main.c(279): warning C4244: “=”: 从“time_t”转换到“unsigned int”，可能丢失数据
+d:\computer\filesystem\project\project\main.c(383): warning C4244: “=”: 从“time_t”转换到“unsigned int”，可能丢失数据
+  正在生成代码
+  2 of 12 functions (16.7%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  已完成代码的生成
+  project.vcxproj -> D:\Computer\Filesystem\project\Release\project.exe
