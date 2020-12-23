@@ -67,10 +67,10 @@ int main()
 			my_rm(cmd[1]);
 		}
 		else if (strcmp(cmd[0], "my_write") == 0) {
-			int fd = my_open(cmd[1]);
-			my_write(fd);
+			//int fd = my_open(cmd[1]);
+			//my_write(fd);
 		}
-		else {
+		else{
 			printf("命令不存在!\n");
 		}
 	}
@@ -202,7 +202,6 @@ void my_exitsys() {
 void copytouser(int i, struct iNode *p, struct FCB* r) {
 	//struct iNode *p = INODE_OST + i;
 	//struct FCB* r = ROOT_OST + i;
-	unsigned short * first=(unsigned short *)(myvhard+(p->number-1)*BLOCKSIZE);
 	strcpy(openfilelist[i].filename, r->filename);
 	strcpy(openfilelist[i].filetype, p->filetype);
 	openfilelist[i].count = p->count;
@@ -217,7 +216,7 @@ void copytouser(int i, struct iNode *p, struct FCB* r) {
 		strcpy(temp, r->filename);
 		strcpy(openfilelist[i].dir, strcat(temp, "/"));
 	}*/
-	openfilelist[i].count = (*first - 1)*BLOCKSIZE + 0;
+	openfilelist[i].off = 0;
 	openfilelist[i].fcbstate = 0;
 	openfilelist[i].topenfile = 1;
 
@@ -438,31 +437,53 @@ void my_rm(char * filename) {
 }
 
 int my_write(int fd) {
+	char buff[MAXBUFFSIZE];
+	int i = 0;
 	if (fd == -1) {
 		printf("文件不存在!\n");
 		return -1;
 	}
 	printf("截断写:0，覆盖写:1，追加写:2，退出:Ctrl+Z");
 	printf("请选择指令:");
-	char wstyle ;
+	char wstyle;
 	scanf("%c", &wstyle);
 	unsigned short * index = (unsigned short *)(myvhard + (openfilelist[fd].number - 1)*BLOCKSIZE);
+	//读写指针修改
 	if (wstyle == '0') {
-		openfilelist[fd].count = (*index - 1)*BLOCKSIZE + 0;
+		openfilelist[fd].count = 0 * BLOCKSIZE + 0;
 	}
 	else if (wstyle == '1') {
 	}
 	else if (wstyle == '2') {
-
+		int off = 0;
+		while (index[off++] != -1);
+		off -= 2;
+		int * readp = (myvhard + (index[off] - 1)*BLOCKSIZE);
+		off *= BLOCKSIZE;
+		while (*readp != EOF) {
+			readp++;
+			off++;
+		}
+		printf("off:%d\n", off);
+		openfilelist[fd].off = off;
 	}
-	else {
-
+	else if (wstyle == EOF) {
+		printf("退出编写模式!\n");
+		return 0;
 	}
-
+	while ((buff[i++] = getchar()) != EOF);
+	my_do_write(fd, buff, strlen(buff), wstyle);//实际写
 }
 
-int do_write() {
+int my_do_write(int fd, char *text, int len, char wstyle) {
+	//分配数据存储区
 
+	//写磁盘
+
+	//修改自身信息
+
+
+	//修改父亲节点信息
 
 
 

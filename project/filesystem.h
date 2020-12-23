@@ -16,6 +16,7 @@
 #define INODE_OST (struct iNode *)(myvhard+2*BLOCKSIZE)
 #define ROOT_OST (struct FCB *)(myvhard+18*BLOCKSIZE)
 #define DATA_OST (char *)(myvhard+19*BLOCKSIZE)
+#define MAXBUFFSIZE 20*BLOCKSIZE
 #define SYS_PATH "SYSTEM.txt"
 
 /*FCB 文件目录项 16B*/
@@ -50,7 +51,7 @@ struct USEROPEN
 	unsigned int fixtime;//最近修改时间
 	//char keep[1];//保留位
 	char dir[100];  //文件路径
-	unsigned int count;//读写指针
+	unsigned int off;//读写指针
 	char fcbstate;  //FCB是否被修改 1 修改 0 未修改
 	char topenfile; //打开表项是否为空 0 空 1 不空
 };
