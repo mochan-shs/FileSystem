@@ -66,6 +66,10 @@ int main()
 		else if (strcmp(cmd[0], "my_rm") == 0) {
 			my_rm(cmd[1]);
 		}
+		else if (strcmp(cmd[0], "my_write") == 0) {
+			int fd = my_open(cmd[1]);
+			my_write(fd);
+		}
 		else {
 			printf("命令不存在!\n");
 		}
@@ -198,6 +202,8 @@ void my_exitsys() {
 void copytouser(int i, struct iNode *p, struct FCB* r) {
 	//struct iNode *p = INODE_OST + i;
 	//struct FCB* r = ROOT_OST + i;
+	unsigned short * first=(unsigned short *)(myvhard+(p->number-1)*BLOCKSIZE);
+	strcpy(openfilelist[i].filename, r->filename);
 	strcpy(openfilelist[i].filetype, p->filetype);
 	openfilelist[i].count = p->count;
 	openfilelist[i].filesize = p->filesize;
@@ -211,6 +217,7 @@ void copytouser(int i, struct iNode *p, struct FCB* r) {
 		strcpy(temp, r->filename);
 		strcpy(openfilelist[i].dir, strcat(temp, "/"));
 	}*/
+	openfilelist[i].count = (*first - 1)*BLOCKSIZE + 0;
 	openfilelist[i].fcbstate = 0;
 	openfilelist[i].topenfile = 1;
 
@@ -352,7 +359,7 @@ int my_create(char *filename) {
 		pdir->filesize += p->filesize;
 		q = strtok(NULL, "/");
 	}
-	return 0;
+	return useropen_free;
 }
 
 void my_rm(char * filename) {
@@ -430,11 +437,34 @@ void my_rm(char * filename) {
 	}
 }
 
-int my_write(intfd) {
+int my_write(int fd) {
+	if (fd == -1) {
+		printf("文件不存在!\n");
+		return -1;
+	}
+	printf("截断写:0，覆盖写:1，追加写:2，退出:Ctrl+Z");
+	printf("请选择指令:");
+	char wstyle ;
+	scanf("%c", &wstyle);
+	unsigned short * index = (unsigned short *)(myvhard + (openfilelist[fd].number - 1)*BLOCKSIZE);
+	if (wstyle == '0') {
+		openfilelist[fd].count = (*index - 1)*BLOCKSIZE + 0;
+	}
+	else if (wstyle == '1') {
+	}
+	else if (wstyle == '2') {
+
+	}
+	else {
+
+	}
 
 }
 
 int do_write() {
+
+
+
 
 }
 

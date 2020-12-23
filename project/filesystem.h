@@ -41,6 +41,7 @@ struct iNode
 /*USEROPEN*/
 struct USEROPEN
 {
+	char filename[13];
 	char filetype[2];//文件类型
 	unsigned short count;//链接数
 	unsigned short filesize;//文件大小
@@ -49,6 +50,7 @@ struct USEROPEN
 	unsigned int fixtime;//最近修改时间
 	//char keep[1];//保留位
 	char dir[100];  //文件路径
+	unsigned int count;//读写指针
 	char fcbstate;  //FCB是否被修改 1 修改 0 未修改
 	char topenfile; //打开表项是否为空 0 空 1 不空
 };
