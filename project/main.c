@@ -222,6 +222,40 @@ void copytouser(int i, struct iNode *p, struct FCB* r) {
 
 }
 
+unsigned short getFreeAddr() {
+	unsigned int * freebit = PGRAPH_OST;
+	int flag, x, y;
+	flag = 0;
+	for (unsigned short i = 0; i < 32; i++) {
+		for (unsigned short j = 0; j < 32; j++) {
+			int b = freebit[i] >> (31 - j) & 1;
+			if (b == 0) {
+				x = i + 1;
+				y = j + 1;
+				freebit[i] |= (1 << (31 - j));
+				flag = 1;
+				break;
+			}
+		}
+		if (flag) break;
+	}
+	if (!flag) {
+		return -1;
+	}
+	return (x - 1) * 32 + y;
+}
+
+void freeAddr(unsigned short number) {
+	unsigned int * pgraph = PGRAPH_OST;
+	unsigned int x, y;
+	x = number / 32;
+	y = (number % 32) - 1;
+	if (y == -1) {
+		y = 31;
+		x -= 1;
+	}
+	pgraph[x] &= ~(1 << (31 - y));//释放文件所占盘块
+}
 int my_create(char *filename) {
 	int useropen_free = -1;
 	//分配空闲用户打开表项
@@ -288,7 +322,7 @@ int my_create(char *filename) {
 	p->filesize = 1;
 	p->filetype[0] = '1';
 	p->filetype[1] = '3';
-	unsigned int * freebit = (unsigned int *)(myvhard + BLOCKSIZE);
+	unsigned int * freebit = PGRAPH_OST;
 	unsigned short x, y;
 	int flag = 0;
 	for (unsigned short i = 0; i < 32; i++) {
@@ -438,6 +472,7 @@ void my_rm(char * filename) {
 
 int my_write(int fd) {
 	char buff[MAXBUFFSIZE];
+	memset(buff, '\0', MAXBUFFSIZE);
 	int i = 0;
 	if (fd == -1) {
 		printf("文件不存在!\n");
@@ -471,21 +506,184 @@ int my_write(int fd) {
 		printf("退出编写模式!\n");
 		return 0;
 	}
-	while ((buff[i++] = getchar()) != EOF);
+	unsigned short filesize = openfilelist[fd].filesize;
+	while ((buff[i++] = getchar()) != EOF) {
+		if (filesize + i > MAXBUFFSIZE) {
+			printf("文件大小已达上限!\n");
+			break;
+		}
+	}
 	my_do_write(fd, buff, strlen(buff), wstyle);//实际写
 }
 
 int my_do_write(int fd, char *text, int len, char wstyle) {
-	//分配数据存储区
-
+	//重新分配、回收数据磁盘块
+	int e_blocknum = len / BLOCKSIZE ;
+	int e_rest = len % BLOCKSIZE;
+	int r_blocknum = openfilelist[fd].filesize / BLOCKSIZE;
+	int r_rest = openfilelist[fd].filesize%BLOCKSIZE;
+	int lastIndex;//记录文件索引表最后一项的索引
+	if (r_rest != 0) lastIndex = r_blocknum + 1;
+	unsigned short * indexFirst = (unsigned short *)(myvhard + (openfilelist[fd].number - 1)*BLOCKSIZE);
+	int index = openfilelist[fd].off / BLOCKSIZE;
+	int offset = openfilelist[fd].off%BLOCKSIZE;
+	unsigned short filesize = openfilelist[fd].filesize;
+	if (wstyle == '0') {
+		if (e_rest != 0) e_blocknum += 1;
+		if (r_rest != 0) r_blocknum += 1;
+		int n = e_blocknum - r_blocknum;
+		int k;
+		unsigned short addrId;
+		if (n > 0) {
+			for (k = 0; k < n; k++) {
+				addrId=getFreeAddr();
+				if (addrId == -1) {
+					printf("磁盘空间不足!申请失败\n");
+					//return -1;
+					break;
+				}
+				indexFirst[lastIndex] = addrId;
+				lastIndex++;
+				//这里不需要判断索引表是否已达上限，因为文件最大占用磁盘块数为20
+			}
+			indexFirst[lastIndex] = -1;
+		}
+		else if (n < 0) {
+			n = -n;
+			for (k = 0; k < n; k++) {
+				lastIndex--;
+				unsigned short num = indexFirst[lastIndex];
+				freeAddr(num);
+			}
+			indexFirst[lastIndex] = -1;
+		}
+	}
+	else if (wstyle == '1') {
+		int k;
+		unsigned short addrId;
+		r_blocknum = r_blocknum - index - 1;
+		r_rest = BLOCKSIZE - offset;
+		int m = e_blocknum - r_blocknum;
+		int restn = e_rest - r_rest;
+		int k = 0;
+		if (m > 0) {
+			if (restn > 0) {
+				m += 1;
+			}
+			for (k = 0; k < m; k++) {
+				addrId = getFreeAddr();
+				if (addrId == -1) {
+					printf("磁盘空间不足!申请失败\n");
+					//return -1;
+					break;
+				}
+				indexFirst[lastIndex] = addrId;
+				lastIndex++;
+				//这里不需要判断索引表是否已达上限，因为文件最大占用磁盘块数为20
+			}
+			indexFirst[lastIndex] = -1;
+		}
+		else if (m < 0) {
+			if (restn > 0) {
+				m = -m - 1;
+			}
+			for (k = 0; k < m; k++) {
+				lastIndex--;
+				unsigned short num = indexFirst[lastIndex];
+				freeAddr(num);
+			}
+			indexFirst[lastIndex] = -1;
+		}
+		else if (m == 0) {
+			if (restn > 0) {
+				addrId = getFreeAddr();
+				if (addrId == -1) {
+					printf("磁盘空间不足!创建失败\n");
+					//return -1;
+				}
+				else {
+					indexFirst[lastIndex] = addrId;
+					indexFirst[++lastIndex] = -1;
+				}
+			}
+		}
+	}
+	else if (wstyle == '2') {
+		int k = 0;
+		r_rest = BLOCKSIZE - r_rest;
+		int restn = e_rest - r_rest;
+		unsigned short addrId;
+		if (restn > 0) {
+			e_blocknum += 1;
+		}
+		for (k = 0; k < e_blocknum; k++) {
+			addrId = getFreeAddr();
+			if (addrId == -1) {
+				printf("磁盘空间不足!创建失败\n");
+				//return -1;
+				break;
+			}
+			indexFirst[lastIndex] = addrId;
+			lastIndex++;
+		}
+		indexFirst[lastIndex] = -1;
+	}
 	//写磁盘
-
-	//修改自身信息
-
-
-	//修改父亲节点信息
-
-
-
+	char *buffFirst = malloc(BLOCKSIZE * sizeof(char));
+	int i = 0;
+	int loopnum = lastIndex - index;
+	char * p = text;
+	char * datap;
+	int q=0;
+	unsigned short readp = openfilelist[fd].off;
+	while (i < loopnum) {
+		unsigned short textSize = strlen(p);
+		unsigned short writeSize = textSize < BLOCKSIZE ? textSize : BLOCKSIZE;
+		memcpy(buffFirst[q], p, writeSize);
+		p += writeSize;
+		int index, offset;
+		while (q < BLOCKSIZE) {
+			index = readp / BLOCKSIZE;
+			offset = readp % BLOCKSIZE;
+			textSize = BLOCKSIZE - q;
+			writeSize = textSize < BLOCKSIZE - offset ? textSize : BLOCKSIZE - offset;
+			datap = (myvhard + (indexFirst[index] - 1)*BLOCKSIZE) + offset;
+			memcpy(datap, buffFirst[q], writeSize);
+			q += writeSize;
+			//openfilelist[fd].off += writeSize;
+			readp += writeSize;
+		}
+		i++;
+	}
+	//修改自身信息以及父节点信息
+	openfilelist[fd].filesize = readp;
+	time_t t = time(NULL);
+	unsigned int  fixtime = time(&t);
+	char dir[100];
+	strcpy(dir, currentdir);
+	char * dirq = strtok(strcat(dir,&openfilelist[fd].filename), "/");
+	struct iNode * pdir = INODE_OST;
+	pdir->fixtime = fixtime;
+	pdir->filesize = pdir->filesize - filesize + readp;
+	unsigned short * indexp;
+	while (dirq) {
+		indexp = (unsigned short *)(myvhard + (pdir->number - 1)*BLOCKSIZE);
+		struct FCB * fcb = NULL;
+		while (*indexp != -1) {
+			fcb = (struct FCB *)(myvhard + (*indexp - 1)*BLOCKSIZE);
+			int i = 0;
+			for (i = 0; i < 64; i++) {
+				if (strcmp(fcb->filename, dirq) == 0) {
+					break;
+				}
+				fcb++;
+			}
+			if (i < 64) break;
+		}
+		pdir = INODE_OST + fcb->id;
+		pdir->fixtime = fixtime;
+		pdir->filesize = pdir->filesize - filesize + readp;
+		dirq = strtok(NULL, "/");
+	}
 }
 
