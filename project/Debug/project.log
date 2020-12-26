@@ -1,0 +1,12 @@
+﻿  main.c
+d:\computer\filesystem\project\project\main.c(94): warning C4477: “scanf”: 格式字符串“%u”需要类型“unsigned int *”的参数，但可变参数 1 拥有了类型“unsigned short *”
+  d:\computer\filesystem\project\project\main.c(94): note: 请考虑在格式字符串中使用“%hu”
+d:\computer\filesystem\project\project\main.c(138): warning C4013: “LocalTime”未定义；假设外部返回 int
+d:\computer\filesystem\project\project\main.c(169): warning C4244: “=”: 从“time_t”转换到“unsigned int”，可能丢失数据
+d:\computer\filesystem\project\project\main.c(177): warning C4305: “初始化”: 从“int”到“char”截断
+d:\computer\filesystem\project\project\main.c(446): warning C4244: “=”: 从“time_t”转换到“unsigned int”，可能丢失数据
+d:\computer\filesystem\project\project\main.c(522): warning C4244: “=”: 从“time_t”转换到“unsigned int”，可能丢失数据
+d:\computer\filesystem\project\project\main.c(837): warning C4267: “初始化”: 从“size_t”转换到“unsigned short”，可能丢失数据
+d:\computer\filesystem\project\project\main.c(864): warning C4244: “初始化”: 从“time_t”转换到“unsigned int”，可能丢失数据
+d:\computer\filesystem\project\project\main.c(962): warning C4715: “my_do_read”: 不是所有的控件路径都返回值
+  project.vcxproj -> D:\Computer\Filesystem\project\Debug\project.exe
